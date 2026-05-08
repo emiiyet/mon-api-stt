@@ -1,0 +1,6 @@
+audios/
+audios_whisper/
+*.wav
+*.webm
+__pycache__/
+.DS_Store
