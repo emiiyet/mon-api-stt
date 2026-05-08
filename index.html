@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IdeaCapture AI</title>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: "Segoe UI", sans-serif;
+            background: #f5f7fa;
+            color: #333;
+        }
+
+        header {
+            background: white;
+            padding: 15px 30px;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-weight: bold;
+            font-size: 18px;
+            color: #4CAF50;
+        }
+
+        .container {
+            display: flex;
+            height: calc(100vh - 60px);
+        }
+
+        /* LEFT */
+        .left {
+            flex: 2;
+            padding: 20px;
+            overflow-y: auto;
+        }
+
+        /* TABS */
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .tab {
+            padding: 8px 20px;
+            border-radius: 20px;
+            border: none;
+            cursor: pointer;
+            font-weight: 600;
+            background: #eee;
+            color: #666;
+        }
+
+        .tab.active {
+            background: #4CAF50;
+            color: white;
+        }
+
+        /* IDEAS */
+        .idea {
+            background: white;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 15px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+        }
+
+        .idea-content {
+            flex: 1;
+        }
+
+        .idea-time {
+            font-size: 12px;
+            color: #888;
+            margin-bottom: 5px;
+        }
+
+        .idea-text {
+            font-size: 15px;
+        }
+
+        .btn-delete {
+            background: none;
+            border: none;
+            color: #f44336;
+            cursor: pointer;
+            font-size: 18px;
+            padding: 0 5px;
+        }
+
+        /* HISTORIQUE */
+        .history-item {
+            background: white;
+            padding: 12px 15px;
+            border-radius: 10px;
+            margin-bottom: 10px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .history-meta {
+            font-size: 12px;
+            color: #888;
+        }
+
+        .history-text {
+            font-size: 14px;
+            margin-top: 3px;
+        }
+
+        /* RIGHT */
+        .right {
+            flex: 1;
+            background: white;
+            border-left: 1px solid #eee;
+            padding: 20px;
+        }
+
+        button.ctrl {
+            padding: 10px 15px;
+            border: none;
+            cursor: pointer;
+            border-radius: 6px;
+            margin-bottom: 10px;
+            font-weight: 500;
+            width: 100%;
+        }
+
+        .start {
+            background: #4CAF50;
+            color: white;
+        }
+
+        .stop {
+            background: #f44336;
+            color: white;
+        }
+
+        .clear {
+            background: #ddd;
+        }
+
+        #status {
+            margin-top: 10px;
+            font-weight: bold;
+        }
+
+        #transcript {
+            background: #f0f0f0;
+            padding: 10px;
+            border-radius: 6px;
+            margin-top: 10px;
+            min-height: 60px;
+            font-size: 14px;
+        }
+
+        .export {
+            display: block;
+            margin-top: 20px;
+            text-decoration: none;
+            color: white;
+            background: #4CAF50;
+            padding: 10px;
+            border-radius: 6px;
+            text-align: center;
+            font-weight: bold;
+        }
+
+        .badge {
+            background: #4CAF50;
+            color: white;
+            border-radius: 50%;
+            padding: 2px 7px;
+            font-size: 11px;
+            margin-left: 5px;
+        }
+
+        .empty {
+            color: #aaa;
+            text-align: center;
+            margin-top: 40px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <header>
+        <div class="logo">🎤 IdeaCapture AI — Cloud Native</div>
+        <div style="font-size:12px;color:#888;">Powered by Wit.ai + Flask + Docker</div>
+    </header>
+
+    <div class="container">
+        <!-- LEFT -->
+        <div class="left">
+            <div class="tabs">
+                <button class="tab active" onclick="showTab('session')">
+                    🎙️ Session <span class="badge" id="sessionCount">0</span>
+                </button>
+                <button class="tab" onclick="showTab('history')">
+                    📚 Historique <span class="badge" id="historyCount">0</span>
+                </button>
+            </div>
+
+            <!-- Session Tab -->
+            <div id="sessionTab">
+                <div id="ideasList">
+                    <p class="empty">Lance un enregistrement pour commencer !</p>
+                </div>
+            </div>
+
+            <!-- History Tab -->
+            <div id="historyTab" style="display:none;">
+                <div id="historyList">
+                    <p class="empty">Aucun enregistrement sauvegardé.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- RIGHT -->
+        <div class="right">
+            <h3>🎛️ Contrôles</h3>
+            <button class="ctrl start" onclick="startSession()">▶ Démarrer</button>
+            <button class="ctrl stop" onclick="stopSession()">◼ Arrêter</button>
+            <button class="ctrl clear" onclick="clearSession()">⌫ Vider session</button>
+
+            <p id="status">En attente</p>
+
+            <h4>📝 Dernière transcription</h4>
+            <div id="transcript">...</div>
+
+            <a class="export" href="/api/export">📥 Télécharger historique</a>
+        </div>
+    </div>
+
+    <script>
+        let mediaRecorder;
+        let chunks = [];
+        let sessionIdeas = [];
+        let idCounter = 0;
+        let currentTab = "session";
+
+        // ── TABS ──
+        function showTab(tab) {
+            currentTab = tab;
+            document.getElementById("sessionTab").style.display = tab === "session" ? "block" : "none";
+            document.getElementById("historyTab").style.display = tab === "history" ? "block" : "none";
+            document.querySelectorAll(".tab").forEach((t, i) => {
+                t.classList.toggle("active", (i === 0 && tab === "session") || (i === 1 && tab === "history"));
+            });
+            if (tab === "history") loadHistory();
+        }
+
+        // ── START ──
+        async function startSession() {
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            mediaRecorder = new MediaRecorder(stream);
+            chunks = [];
+            mediaRecorder.ondataavailable = e => chunks.push(e.data);
+            mediaRecorder.start();
+            document.getElementById("status").innerText = "🎤 Enregistrement en cours...";
+        }
+
+        // ── STOP ──
+        function stopSession() {
+            if (!mediaRecorder) return;
+            mediaRecorder.stop();
+            mediaRecorder.onstop = async () => {
+                document.getElementById("status").innerText = "⏳ Transcription en cours...";
+                const blob = new Blob(chunks, { type: "audio/webm" });
+                chunks = [];
+                const formData = new FormData();
+                formData.append("audio", blob);
+                try {
+                    const res = await fetch("/upload", { method: "POST", body: formData });
+                    const data = await res.json();
+                    if (data.text) {
+                        document.getElementById("transcript").innerText = data.text;
+                        addToSession(data.text, data.record);
+                        document.getElementById("status").innerText = "✅ Terminé !";
+                    } else {
+                        document.getElementById("status").innerText = "❌ " + (data.error || "Erreur");
+                    }
+                } catch (e) {
+                    document.getElementById("status").innerText = "❌ Erreur serveur";
+                }
+            };
+        }
+
+        // ── ADD TO SESSION ──
+        function addToSession(text, record) {
+            const now = new Date().toLocaleTimeString();
+            sessionIdeas.unshift({ id: idCounter++, text, time: now, recordId: record?.id });
+            document.getElementById("sessionCount").innerText = sessionIdeas.length;
+            renderSession();
+        }
+
+        // ── RENDER SESSION ──
+        function renderSession() {
+            const list = document.getElementById("ideasList");
+            if (sessionIdeas.length === 0) {
+                list.innerHTML = '<p class="empty">Lance un enregistrement pour commencer !</p>';
+                return;
+            }
+            list.innerHTML = sessionIdeas.map(i => `
+            <div class="idea">
+                <div class="idea-content">
+                    <div class="idea-time">🕐 ${i.time}</div>
+                    <div class="idea-text">${i.text}</div>
+                </div>
+            </div>
+        `).join("");
+        }
+
+        // ── LOAD HISTORY ──
+        async function loadHistory() {
+            const res = await fetch("/api/records");
+            const data = await res.json();
+            document.getElementById("historyCount").innerText = data.total;
+            const list = document.getElementById("historyList");
+            if (data.records.length === 0) {
+                list.innerHTML = '<p class="empty">Aucun enregistrement sauvegardé.</p>';
+                return;
+            }
+            list.innerHTML = [...data.records].reverse().map(r => `
+            <div class="history-item">
+                <div>
+                    <div class="history-meta">📅 ${r.date} à ${r.heure}</div>
+                    <div class="history-text">${r.text}</div>
+                </div>
+                <button class="btn-delete" onclick="deleteRecord(${r.id})">🗑️</button>
+            </div>
+        `).join("");
+        }
+
+        // ── DELETE ──
+        async function deleteRecord(id) {
+            await fetch(`/api/records/${id}`, { method: "DELETE" });
+            loadHistory();
+        }
+
+        // ── CLEAR SESSION ──
+        function clearSession() {
+            sessionIdeas = [];
+            document.getElementById("sessionCount").innerText = 0;
+            document.getElementById("transcript").innerText = "...";
+            document.getElementById("status").innerText = "En attente";
+            renderSession();
+        }
+
+        // Charger le compte historique au démarrage
+        fetch("/api/records").then(r => r.json()).then(d => {
+            document.getElementById("historyCount").innerText = d.total;
+        });
+    </script>
+</body>
+
+</html>

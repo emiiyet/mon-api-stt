@@ -1,0 +1,28 @@
+version: "3.8"
+
+services:
+
+  # ── Microservice Whisper STT ──
+  whisper:
+    build:
+      context: .
+      dockerfile: Dockerfile.whisper
+    ports:
+      - "5001:5001"
+    volumes:
+      - ./audios_whisper:/app/audios_whisper
+
+  # ── Frontend Flask ──
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+    ports:
+      - "5002:5000"
+    environment:
+      - WHISPER_URL=http://whisper:5001
+    volumes:
+      - ./audios:/app/audios
+      - ./records.json:/app/records.json
+    depends_on:
+      - whisper
