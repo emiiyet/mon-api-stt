@@ -8,7 +8,7 @@ app = Flask(__name__)
 
 # Charger le modèle Whisper
 print("🔄 Chargement du modèle Whisper...")
-model = whisper.load_model("base")
+model = whisper.load_model("tiny")
 print("✅ Modèle Whisper prêt !")
 
 UPLOAD_FOLDER = "audios_whisper"
