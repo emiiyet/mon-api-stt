@@ -1,15 +1,20 @@
-FROM python:3.11-slim
+FROM python:3.10-slim
 
+# Installer ffmpeg
 RUN apt-get update && apt-get install -y ffmpeg && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
-RUN pip install flask openai-whisper
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
 
-COPY whisper_service.py .
+COPY . .
 
-RUN mkdir -p audios_whisper
+RUN mkdir -p audios audios_whisper
 
-EXPOSE 5001
+# Initialiser records.json si absent
+RUN echo "[]" > records.json
 
-CMD ["python", "whisper_service.py"]
+EXPOSE 5000
+
+CMD ["python", "app.py"]

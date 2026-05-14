@@ -1,19 +1,15 @@
 from flask import Flask, request, jsonify
-import whisper
+from groq import Groq
 import os
 import subprocess
 from datetime import datetime
 
 app = Flask(__name__)
 
-# Charger le modèle Whisper
-print("🔄 Chargement du modèle Whisper...")
-model = whisper.load_model("tiny")
-print("✅ Modèle Whisper prêt !")
+client = Groq(api_key=os.environ.get("GROQ_API_KEY"))
 
 UPLOAD_FOLDER = "audios_whisper"
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-
 
 def convert_to_wav(input_path, output_path):
     try:
@@ -26,11 +22,9 @@ def convert_to_wav(input_path, output_path):
         print("Erreur ffmpeg:", str(e))
         return False
 
-
 @app.route("/health")
 def health():
-    return jsonify({"status": "ok", "service": "whisper"})
-
+    return jsonify({"status": "ok", "service": "whisper-groq"})
 
 @app.route("/transcribe", methods=["POST"])
 def transcribe():
@@ -47,12 +41,19 @@ def transcribe():
     if not convert_to_wav(webm_path, wav_path):
         return jsonify({"error": "Conversion échouée"}), 500
 
-    result = model.transcribe(wav_path)
-    text = result["text"].strip()
-
-    print(f"✅ Transcription: {text}")
-    return jsonify({"text": text})
-
+    try:
+        with open(wav_path, "rb") as audio_file:
+            transcription = client.audio.transcriptions.create(
+                model="whisper-large-v3",
+                file=audio_file,
+                response_format="text"
+            )
+        text = transcription.strip() if isinstance(transcription, str) else transcription.text.strip()
+        print(f"✅ Transcription: {text}")
+        return jsonify({"text": text})
+    except Exception as e:
+        print("Erreur Groq Whisper:", str(e))
+        return jsonify({"error": "Transcription échouée"}), 500
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5001, debug=False)
