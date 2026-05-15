@@ -3,38 +3,52 @@ from groq import Groq
 import json
 import os
 import subprocess
+import requests
 from datetime import datetime
 
 app = Flask(__name__, static_folder=".")
 
 UPLOAD_FOLDER = "audios"
-RECORDS_FILE  = "records.json"
-
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
-if not os.path.exists(RECORDS_FILE):
-    with open(RECORDS_FILE, "w") as f:
-        json.dump([], f)
+groq_client = Groq(api_key=os.environ.get("GROQ_API_KEY"))
 
-client = Groq(api_key=os.environ.get("GROQ_API_KEY"))
+SUPABASE_URL = os.environ.get("SUPABASE_URL")
+SUPABASE_KEY = os.environ.get("SUPABASE_KEY")
+
+def supabase_headers():
+    return {
+        "apikey": SUPABASE_KEY,
+        "Authorization": f"Bearer {SUPABASE_KEY}",
+        "Content-Type": "application/json"
+    }
 
 # ─────────────── HELPERS ───────────────
 def load_records():
-    with open(RECORDS_FILE, "r", encoding="utf-8") as f:
-        return json.load(f)
+    res = requests.get(
+        f"{SUPABASE_URL}/rest/v1/records?order=id.asc",
+        headers=supabase_headers()
+    )
+    return res.json() if res.ok else []
 
 def save_record(text):
-    records = load_records()
     record = {
-        "id": len(records) + 1,
         "text": text,
         "date": datetime.now().strftime("%Y-%m-%d"),
         "heure": datetime.now().strftime("%H:%M:%S"),
     }
-    records.append(record)
-    with open(RECORDS_FILE, "w", encoding="utf-8") as f:
-        json.dump(records, f, ensure_ascii=False, indent=2)
-    return record
+    res = requests.post(
+        f"{SUPABASE_URL}/rest/v1/records",
+        headers={**supabase_headers(), "Prefer": "return=representation"},
+        json=record
+    )
+    return res.json()[0] if res.ok else record
+
+def delete_record_db(record_id):
+    requests.delete(
+        f"{SUPABASE_URL}/rest/v1/records?id=eq.{record_id}",
+        headers=supabase_headers()
+    )
 
 def convert_to_wav(input_path, output_path):
     try:
@@ -70,7 +84,7 @@ def upload_audio():
 
     try:
         with open(wav_path, "rb") as audio_file:
-            transcription = client.audio.transcriptions.create(
+            transcription = groq_client.audio.transcriptions.create(
                 model="whisper-large-v3",
                 file=audio_file,
                 response_format="text"
@@ -95,10 +109,7 @@ def get_records():
 
 @app.route("/api/records/<int:record_id>", methods=["DELETE"])
 def delete_record(record_id):
-    records = load_records()
-    records = [r for r in records if r["id"] != record_id]
-    with open(RECORDS_FILE, "w", encoding="utf-8") as f:
-        json.dump(records, f, ensure_ascii=False, indent=2)
+    delete_record_db(record_id)
     return jsonify({"message": "Supprimé ✅"})
 
 # ─────────────── EXPORT ───────────────
