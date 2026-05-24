@@ -32,6 +32,27 @@
             color: #4CAF50;
         }
 
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .btn-retour {
+            font-size: 13px;
+            color: #4CAF50;
+            text-decoration: none;
+            border: 1px solid #4CAF50;
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-weight: 500;
+        }
+
+        .btn-retour:hover {
+            background: #4CAF50;
+            color: white;
+        }
+
         .container {
             display: flex;
             height: calc(100vh - 60px);
@@ -202,7 +223,10 @@
 
     <header>
         <div class="logo">🎤 IdeaCapture AI — Cloud Native</div>
-        <div style="font-size:12px;color:#888;">Powered by Wit.ai + Flask + Docker</div>
+        <div class="header-right">
+            <div style="font-size:12px;color:#888;">Powered by Wit.ai + Flask + Docker</div>
+            <a href="https://portail-mobilisai.onrender.com" class="btn-retour">← Retour au portail</a>
+        </div>
     </header>
 
     <div class="container">
@@ -255,7 +279,6 @@
         let idCounter = 0;
         let currentTab = "session";
 
-        // ── TABS ──
         function showTab(tab) {
             currentTab = tab;
             document.getElementById("sessionTab").style.display = tab === "session" ? "block" : "none";
@@ -266,7 +289,6 @@
             if (tab === "history") loadHistory();
         }
 
-        // ── START ──
         async function startSession() {
             const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
             mediaRecorder = new MediaRecorder(stream);
@@ -276,7 +298,6 @@
             document.getElementById("status").innerText = "🎤 Enregistrement en cours...";
         }
 
-        // ── STOP ──
         function stopSession() {
             if (!mediaRecorder) return;
             mediaRecorder.stop();
@@ -302,7 +323,6 @@
             };
         }
 
-        // ── ADD TO SESSION ──
         function addToSession(text, record) {
             const now = new Date().toLocaleTimeString();
             sessionIdeas.unshift({ id: idCounter++, text, time: now, recordId: record?.id });
@@ -310,7 +330,6 @@
             renderSession();
         }
 
-        // ── RENDER SESSION ──
         function renderSession() {
             const list = document.getElementById("ideasList");
             if (sessionIdeas.length === 0) {
@@ -327,7 +346,6 @@
         `).join("");
         }
 
-        // ── LOAD HISTORY ──
         async function loadHistory() {
             const res = await fetch("/api/records");
             const data = await res.json();
@@ -348,13 +366,11 @@
         `).join("");
         }
 
-        // ── DELETE ──
         async function deleteRecord(id) {
             await fetch(`/api/records/${id}`, { method: "DELETE" });
             loadHistory();
         }
 
-        // ── CLEAR SESSION ──
         function clearSession() {
             sessionIdeas = [];
             document.getElementById("sessionCount").innerText = 0;
@@ -363,7 +379,6 @@
             renderSession();
         }
 
-        // Charger le compte historique au démarrage
         fetch("/api/records").then(r => r.json()).then(d => {
             document.getElementById("historyCount").innerText = d.total;
         });
